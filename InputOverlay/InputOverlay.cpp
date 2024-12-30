@@ -1,46 +1,53 @@
-// InputOverlay.cpp
 #include "pch.h"
 #include "InputOverlay.h"
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
-BAKKESMOD_PLUGIN(InputOverlay, "Displays keyboard and mouse inputs overlay", "1", PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(InputOverlay, "Keyboard and Mouse Input Overlay", plugin_version, PLUGINTYPE_FREEPLAY)
 
 void InputOverlay::onLoad()
 {
+    _globalCvarManager = cvarManager;
+
+    // Register the draw callback
     gameWrapper->RegisterDrawable([this](CanvasWrapper canvas) {
-        RenderKeyboardOverlay(canvas);
+        HandleInput(); // Move input handling to the draw callback
+        if (gameWrapper->IsInGame()) {
+            RenderKeyboardOverlay(canvas);
+        }
         });
 
-    gameWrapper->HookEvent("Function TAGame.GameViewportClient_TA.Tick",
-        [this](std::string eventName) {
-            HandleInput();
-        });
+    // Log that plugin has loaded
+    cvarManager->log("Keyboard Overlay Plugin has loaded!");
 }
 
 void InputOverlay::onUnload()
 {
+    cvarManager->log("Keyboard Overlay Plugin has unloaded!");
 }
 
 void InputOverlay::HandleInput()
 {
-    isKeyPressed[0] = GetAsyncKeyState(0x51) & 0x8000; // Q
-    isKeyPressed[1] = GetAsyncKeyState(0x57) & 0x8000; // W
-    isKeyPressed[2] = GetAsyncKeyState(0x45) & 0x8000; // E
-    isKeyPressed[3] = GetAsyncKeyState(0x41) & 0x8000; // A
-    isKeyPressed[4] = GetAsyncKeyState(0x53) & 0x8000; // S
-    isKeyPressed[5] = GetAsyncKeyState(0x44) & 0x8000; // D
-    isKeyPressed[6] = GetAsyncKeyState(VK_CAPITAL) & 0x8000; // Caps Lock
+    // Add debug logging to verify input detection
+    if (GetAsyncKeyState(0x51) & 0x8000) { // Q key
+        cvarManager->log("Q key pressed");
+    }
 
-    isMousePressed[0] = GetAsyncKeyState(VK_LBUTTON) & 0x8000; // LMB
-    isMousePressed[1] = GetAsyncKeyState(VK_RBUTTON) & 0x8000; // RMB
+    isKeyPressed[0] = (GetAsyncKeyState(0x51) & 0x8000) != 0; // Q
+    isKeyPressed[1] = (GetAsyncKeyState(0x57) & 0x8000) != 0; // W
+    isKeyPressed[2] = (GetAsyncKeyState(0x45) & 0x8000) != 0; // E
+    isKeyPressed[3] = (GetAsyncKeyState(0x41) & 0x8000) != 0; // A
+    isKeyPressed[4] = (GetAsyncKeyState(0x53) & 0x8000) != 0; // S
+    isKeyPressed[5] = (GetAsyncKeyState(0x44) & 0x8000) != 0; // D
+    isKeyPressed[6] = (GetAsyncKeyState(VK_CAPITAL) & 0x8000) != 0; // Caps Lock
+
+    isMousePressed[0] = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0; // LMB
+    isMousePressed[1] = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0; // RMB
 }
 
 void InputOverlay::RenderKeyboardOverlay(CanvasWrapper canvas)
 {
-    if (!gameWrapper->IsInGame()) return;
-
-    // Base position for the overlay (top-left corner)
+    // Base position for the overlay (fixed position)
     Vector2F basePos = { 100.0f, 100.0f };
     float keySize = 40.0f;
     float spacing = 5.0f;
@@ -68,21 +75,26 @@ void InputOverlay::RenderKey(CanvasWrapper canvas, Vector2F position, const char
 {
     float keySize = 40.0f;
 
-    // Draw key outline (black)
-    canvas.SetPosition(position);
-    canvas.SetColor(0, 0, 0, 255);
-    canvas.DrawBox(Vector2F{ keySize, keySize });
-
-    // Draw key fill if pressed
     if (isPressed) {
-        canvas.SetPosition(Vector2F{ position.X + 1.0f, position.Y + 1.0f });
-        canvas.SetColor(255, 223, 0, 255); // Golden Yellow #FFDF00
-        canvas.DrawBox(Vector2F{ keySize - 2.0f, keySize - 2.0f });
+        // Golden yellow fill when pressed
+        canvas.SetColor(255, 223, 0, 255); // #FFDF00
+        canvas.SetPosition(position);
+        canvas.FillBox(Vector2F{ keySize, keySize });
     }
 
-    // Draw key label
+    // Always draw black outline
     canvas.SetColor(0, 0, 0, 255);
+    canvas.SetPosition(position);
+    canvas.DrawBox(Vector2F{ keySize, keySize });
+
+    // Draw the label
     canvas.SetPosition(Vector2F{ position.X + keySize / 2.0f - 5.0f, position.Y + keySize / 2.0f - 5.0f });
+    if (isPressed) {
+        canvas.SetColor(0, 0, 0, 255); // Black text when pressed
+    }
+    else {
+        canvas.SetColor(255, 255, 255, 255); // White text when not pressed
+    }
     canvas.DrawString(label);
 }
 
@@ -91,20 +103,25 @@ void InputOverlay::RenderMouseButton(CanvasWrapper canvas, Vector2F position, co
     float buttonWidth = 40.0f;
     float buttonHeight = 30.0f;
 
-    // Draw button outline (black)
-    canvas.SetPosition(position);
-    canvas.SetColor(0, 0, 0, 255);
-    canvas.DrawBox(Vector2F{ buttonWidth, buttonHeight });
-
-    // Draw button fill if pressed
     if (isPressed) {
-        canvas.SetPosition(Vector2F{ position.X + 1.0f, position.Y + 1.0f });
-        canvas.SetColor(255, 223, 0, 255); // Golden Yellow #FFDF00
-        canvas.DrawBox(Vector2F{ buttonWidth - 2.0f, buttonHeight - 2.0f });
+        // Golden yellow fill when pressed
+        canvas.SetColor(255, 223, 0, 255); // #FFDF00
+        canvas.SetPosition(position);
+        canvas.FillBox(Vector2F{ buttonWidth, buttonHeight });
     }
 
-    // Draw button label
+    // Always draw black outline
     canvas.SetColor(0, 0, 0, 255);
+    canvas.SetPosition(position);
+    canvas.DrawBox(Vector2F{ buttonWidth, buttonHeight });
+
+    // Draw the label
     canvas.SetPosition(Vector2F{ position.X + buttonWidth / 2.0f - 10.0f, position.Y + buttonHeight / 2.0f - 5.0f });
+    if (isPressed) {
+        canvas.SetColor(0, 0, 0, 255); // Black text when pressed
+    }
+    else {
+        canvas.SetColor(255, 255, 255, 255); // White text when not pressed
+    }
     canvas.DrawString(label);
 }
