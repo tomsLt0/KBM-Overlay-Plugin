@@ -1,22 +1,21 @@
 #pragma once
-#include "pch.h"
+#include "bakkesmod/plugin/bakkesmodplugin.h"
 
-constexpr auto plugin_version = "1.0";
+#include "version.h"
 
-class InputOverlay : public BakkesMod::Plugin::BakkesModPlugin {
+class InputOverlay : public BakkesMod::Plugin::BakkesModPlugin
+{
 private:
     bool isKeyPressed[7] = { false }; // For Q,W,E,A,S,D,CapsLock
     bool isMousePressed[2] = { false }; // For LMB, RMB
-    bool showOverlay = true;
 
+    // Rendering functions
     void RenderKeyboardOverlay(CanvasWrapper canvas);
-    void RenderKey(CanvasWrapper canvas, Vector2F position, const char* label, bool isPressed);
+    void RenderKey(CanvasWrapper canvas, Vector2F position, const char* label, bool isPressed, float width);
     void RenderMouseButton(CanvasWrapper canvas, Vector2F position, const char* label, bool isPressed);
     void HandleInput();
 
 public:
-    virtual void onLoad();
-    virtual void onUnload();
+    void onLoad() override;
+    void onUnload() override;
 };
-
-extern std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
