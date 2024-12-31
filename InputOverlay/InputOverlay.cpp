@@ -1,7 +1,7 @@
 /*
 * Input Overlay Plugin for BakkesMod
 * Created by tomsLt0
-* Last updated: 2024-12-30
+* Last updated: 2024-12-30 22:27:55 UTC
 */
 
 #include "pch.h"
@@ -10,15 +10,13 @@
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
-BAKKESMOD_PLUGIN(InputOverlay, "Input Overlay", plugin_version, PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(InputOverlay, "Input Overlay", plugin_version, PLUGINTYPE_THREADED)
 
 void InputOverlay::onLoad()
 {
     gameWrapper->RegisterDrawable([this](CanvasWrapper canvas) {
         HandleInput();
-        if (gameWrapper->IsInGame()) {
             RenderKeyboardOverlay(canvas);
-        }
         });
 
     cvarManager->log("Input Overlay Plugin loaded!");
